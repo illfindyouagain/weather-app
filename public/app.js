@@ -92,6 +92,7 @@ function displayCurrentWeather(data) {
     
     document.getElementById('cityName').textContent = data.location.name;
     document.getElementById('temperature').textContent = Math.round(temp);
+    document.getElementById('tempUnit').textContent = isCelsius ? '°C' : '°F';
     document.getElementById('condition').textContent = data.current.condition.text;
     document.getElementById('humidity').textContent = data.current.humidity + '%';
     document.getElementById('wind').textContent = windSpeed + ' ' + windUnit;
