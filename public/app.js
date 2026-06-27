@@ -98,9 +98,8 @@ function displayCurrentWeather(data) {
     document.getElementById('feelsLike').textContent = Math.round(feelsLike) + (isCelsius ? '°C' : '°F');
     document.getElementById('uvIndex').textContent = data.current.uv;
 
-    const iconEl = document.getElementById('weatherIcon');
-    iconEl.src = 'https:' + data.current.condition.icon.replace('64x64', '128x128');
-    iconEl.alt = data.current.condition.text;
+    document.getElementById('weatherIcon').innerHTML =
+        getWeatherIconSVG(data.current.condition.text, data.current.is_day === 0);
 
     // last_updated is already local time for the queried city — display as-is
     const [, timePart] = data.current.last_updated.split(' ');
@@ -131,7 +130,7 @@ function displayForecast(data) {
         const dow = date.toLocaleDateString('en-US', { weekday: 'short' });
         dayDiv.innerHTML = `
             <div class="forecast-dow">${dow}</div>
-            <img src="https:${day.day.condition.icon}" class="forecast-icon" alt="${day.day.condition.text}">
+            <div class="forecast-icon">${getWeatherIconSVG(day.day.condition.text, false)}</div>
             <div class="forecast-hi">${Math.round(maxTemp)}°</div>
             <div class="forecast-lo">${Math.round(minTemp)}°</div>
         `;
@@ -203,6 +202,136 @@ function getWeatherGradient(condition, isNight) {
     }
     
     return weatherGradients.default;
+}
+
+function getConditionType(text, isNight) {
+    const c = text.toLowerCase();
+    if (c.includes('thunder') || c.includes('storm')) return 'storm';
+    if (c.includes('snow') || c.includes('sleet') || c.includes('blizzard') || c.includes('ice')) return 'snow';
+    if (c.includes('rain') || c.includes('drizzle') || c.includes('shower')) return 'rain';
+    if (c.includes('mist') || c.includes('fog') || c.includes('haze') || c.includes('freezing')) return 'mist';
+    if (c.includes('overcast')) return 'overcast';
+    if (c.includes('cloud') || c.includes('partly')) return isNight ? 'cloudy-night' : 'cloudy-day';
+    return isNight ? 'clear-night' : 'clear-day';
+}
+
+function getWeatherIconSVG(conditionText, isNight) {
+    const type = getConditionType(conditionText, isNight);
+    switch (type) {
+        case 'clear-day': return `
+            <svg viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
+              <g style="transform-origin:36px 36px;animation:wx-spin 12s linear infinite">
+                ${[0,45,90,135,180,225,270,315].map(a => `
+                  <line x1="36" y1="8" x2="36" y2="16"
+                    stroke="#FFD93D" stroke-width="3" stroke-linecap="round"
+                    style="transform-origin:36px 36px;transform:rotate(${a}deg)"/>`).join('')}
+              </g>
+              <circle cx="36" cy="36" r="13" fill="#FFD93D"/>
+              <circle cx="36" cy="36" r="10" fill="#FFB300" opacity="0.5"/>
+            </svg>`;
+
+        case 'clear-night': return `
+            <svg viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <mask id="moon-mask">
+                  <circle cx="34" cy="36" r="18" fill="white"/>
+                  <circle cx="43" cy="29" r="14" fill="black"/>
+                </mask>
+              </defs>
+              <circle cx="34" cy="36" r="18" fill="#E8EAF6" mask="url(#moon-mask)"/>
+              <circle cx="54" cy="16" r="2" fill="white" style="animation:wx-twinkle 2.1s ease-in-out infinite"/>
+              <circle cx="60" cy="30" r="1.5" fill="white" style="animation:wx-twinkle 2.8s ease-in-out infinite 0.4s"/>
+              <circle cx="58" cy="44" r="1" fill="white" style="animation:wx-twinkle 1.9s ease-in-out infinite 0.9s"/>
+            </svg>`;
+
+        case 'cloudy-day': return `
+            <svg viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
+              <g style="transform-origin:24px 30px;animation:wx-spin 12s linear infinite">
+                ${[0,60,120,180,240,300].map(a => `
+                  <line x1="24" y1="10" x2="24" y2="16"
+                    stroke="#FFD93D" stroke-width="2.5" stroke-linecap="round"
+                    style="transform-origin:24px 30px;transform:rotate(${a}deg)"/>`).join('')}
+              </g>
+              <circle cx="24" cy="30" r="9" fill="#FFD93D"/>
+              <g style="animation:wx-float 4s ease-in-out infinite">
+                <path d="M18 50 Q18 38 28 38 Q30 30 40 30 Q52 30 52 42 Q58 42 58 50 Z"
+                  fill="white" opacity="0.95"/>
+              </g>
+            </svg>`;
+
+        case 'cloudy-night': return `
+            <svg viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <mask id="moon-mask2">
+                  <circle cx="22" cy="28" r="13" fill="white"/>
+                  <circle cx="29" cy="22" r="10" fill="black"/>
+                </mask>
+              </defs>
+              <circle cx="22" cy="28" r="13" fill="#C5CAE9" mask="url(#moon-mask2)"/>
+              <g style="animation:wx-float 4s ease-in-out infinite">
+                <path d="M18 52 Q18 40 28 40 Q30 32 40 32 Q52 32 52 44 Q58 44 58 52 Z"
+                  fill="white" opacity="0.9"/>
+              </g>
+            </svg>`;
+
+        case 'overcast': return `
+            <svg viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
+              <g style="animation:wx-float 5s ease-in-out infinite">
+                <path d="M12 52 Q12 38 24 38 Q26 28 38 28 Q52 28 52 40 Q60 40 60 52 Z"
+                  fill="white" opacity="0.85"/>
+              </g>
+            </svg>`;
+
+        case 'rain': return `
+            <svg viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
+              <g style="animation:wx-float 4s ease-in-out infinite">
+                <path d="M12 42 Q12 30 22 30 Q24 22 34 22 Q46 22 46 32 Q53 32 53 42 Z"
+                  fill="white" opacity="0.9"/>
+              </g>
+              <line x1="22" y1="50" x2="19" y2="62" stroke="#90CAF9" stroke-width="2.5" stroke-linecap="round" style="animation:wx-rain 1.0s linear infinite"/>
+              <line x1="32" y1="50" x2="29" y2="62" stroke="#90CAF9" stroke-width="2.5" stroke-linecap="round" style="animation:wx-rain 1.0s linear infinite 0.25s"/>
+              <line x1="42" y1="50" x2="39" y2="62" stroke="#90CAF9" stroke-width="2.5" stroke-linecap="round" style="animation:wx-rain 1.0s linear infinite 0.5s"/>
+            </svg>`;
+
+        case 'snow': return `
+            <svg viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
+              <g style="animation:wx-float 4s ease-in-out infinite">
+                <path d="M12 42 Q12 30 22 30 Q24 22 34 22 Q46 22 46 32 Q53 32 53 42 Z"
+                  fill="white" opacity="0.9"/>
+              </g>
+              <circle cx="22" cy="54" r="2.5" fill="white" style="animation:wx-snow 1.4s linear infinite"/>
+              <circle cx="32" cy="56" r="2" fill="white" style="animation:wx-snow 1.4s linear infinite 0.35s"/>
+              <circle cx="42" cy="54" r="2.5" fill="white" style="animation:wx-snow 1.4s linear infinite 0.7s"/>
+            </svg>`;
+
+        case 'storm': return `
+            <svg viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
+              <g style="animation:wx-float 4s ease-in-out infinite">
+                <path d="M10 44 Q10 32 22 32 Q24 22 36 22 Q50 22 50 34 Q58 34 58 44 Z"
+                  fill="#B0BEC5" opacity="0.95"/>
+              </g>
+              <polygon points="38,46 32,58 36,58 30,70 44,54 39,54"
+                fill="#FFD93D" style="animation:wx-flash 2s ease-in-out infinite"/>
+            </svg>`;
+
+        case 'mist': return `
+            <svg viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
+              <line x1="14" y1="28" x2="58" y2="28" stroke="white" stroke-width="3" stroke-linecap="round" opacity="0.7" style="animation:wx-drift 3s ease-in-out infinite"/>
+              <line x1="20" y1="38" x2="62" y2="38" stroke="white" stroke-width="3" stroke-linecap="round" opacity="0.55" style="animation:wx-drift 3s ease-in-out infinite 0.5s reverse"/>
+              <line x1="10" y1="48" x2="52" y2="48" stroke="white" stroke-width="3" stroke-linecap="round" opacity="0.4" style="animation:wx-drift 3s ease-in-out infinite 1s"/>
+            </svg>`;
+
+        default: return `
+            <svg viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
+              <g style="transform-origin:36px 36px;animation:wx-spin 12s linear infinite">
+                ${[0,45,90,135,180,225,270,315].map(a => `
+                  <line x1="36" y1="8" x2="36" y2="16"
+                    stroke="#FFD93D" stroke-width="3" stroke-linecap="round"
+                    style="transform-origin:36px 36px;transform:rotate(${a}deg)"/>`).join('')}
+              </g>
+              <circle cx="36" cy="36" r="13" fill="#FFD93D"/>
+            </svg>`;
+    }
 }
 
 function updateBackground(data) {
