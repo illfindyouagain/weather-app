@@ -16,14 +16,14 @@ A clean, responsive weather application with dynamic backgrounds that change bas
 
 ## Screenshots
 
-![Night Mode - London](screenshots/night-mode-london.png)
-*Night mode — deep indigo atmospheric gradient*
+![Night Mode - New York](screenshots/night-mode-newyork.png)
+*Clear night — animated crescent moon, deep indigo liquid glass*
 
-![Rainy - Sydney](screenshots/day-mode-sydney.png)
-*Rainy day — soft blue-grey gradient*
+![Sunny - Bangkok](screenshots/sunny-bangkok.png)
+*Sunny and hot — spinning sun icon, warm pink-purple gradient*
 
-![Sunny - Bangkok](screenshots/day-mode-bangkok.png)
-*Sunny and hot — warm sunset gradient*
+![Rainy - Sydney](screenshots/rainy-sydney.png)
+*Light rain — animated rain cloud, cool blue gradient*
 
 ## Tech Stack
 

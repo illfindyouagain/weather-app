@@ -25,6 +25,15 @@ const weatherGradients = {
     default: ['#F8B195', '#F67280', '#C06C84', '#6C5B7B', '#355C7D']
 };
 
+// Create animated background blobs
+function initBlobs() {
+    [1, 2, 3].forEach(i => {
+        const b = document.createElement('div');
+        b.className = `blob blob-${i}`;
+        appBg.appendChild(b);
+    });
+}
+
 // DOM Elements
 const cityInput = document.getElementById('cityInput');
 const searchBtn = document.getElementById('searchBtn');
@@ -43,6 +52,7 @@ toggleUnitBtn.addEventListener('click', toggleUnit);
 
 // Initialize with geolocation
 window.addEventListener('load', () => {
+    initBlobs();
     detectLocation();
 });
 
@@ -71,6 +81,7 @@ async function fetchWeather(city) {
         updateBackground(data);
         displayCurrentWeather(data);
         displayForecast(data);
+        attachTileEffects();
 
     } catch (error) {
         showError(error.message || 'Failed to fetch weather data');
@@ -148,12 +159,45 @@ function displayForecast(data) {
 
 function toggleUnit() {
     isCelsius = !isCelsius;
-    toggleUnitBtn.textContent = isCelsius ? '°F' : '°C';
-    
-    if (currentData && forecastData) {
-        displayCurrentWeather(currentData);
-        displayForecast(forecastData);
-    }
+
+    toggleUnitBtn.classList.remove('flip-in');
+    toggleUnitBtn.classList.add('flip-out');
+
+    setTimeout(() => {
+        toggleUnitBtn.textContent = isCelsius ? '°F' : '°C';
+        toggleUnitBtn.classList.remove('flip-out');
+        toggleUnitBtn.classList.add('flip-in');
+        if (currentData && forecastData) {
+            displayCurrentWeather(currentData);
+            displayForecast(forecastData);
+        }
+    }, 140);
+}
+
+function attachTileEffects() {
+    document.querySelectorAll('.forecast-day, .detail-chip').forEach(tile => {
+        tile.addEventListener('mousemove', onTileMove);
+        tile.addEventListener('mouseleave', onTileLeave);
+    });
+}
+
+function onTileMove(e) {
+    const rect = this.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top) / rect.height;
+    this.style.setProperty('--mx', `${(x * 100).toFixed(1)}%`);
+    this.style.setProperty('--my', `${(y * 100).toFixed(1)}%`);
+    const tiltX = (y - 0.5) * -16;
+    const tiltY = (x - 0.5) * 16;
+    this.style.transition = 'background 0.2s';
+    this.style.transform = `perspective(500px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) scale(1.04)`;
+}
+
+function onTileLeave() {
+    this.style.removeProperty('--mx');
+    this.style.removeProperty('--my');
+    this.style.transition = 'transform 0.5s cubic-bezier(0.34,1.56,0.64,1), background 0.2s';
+    this.style.transform = '';
 }
 
 function setLoading(on) {
@@ -338,14 +382,19 @@ function updateBackground(data) {
     const isNight = data.current.is_day === 0;
     const condition = data.current.condition.text;
     const colors = getWeatherGradient(condition, isNight);
-    
-    // Apply or remove night mode class
+
     if (isNight) {
         document.body.classList.add('app--night');
     } else {
         document.body.classList.remove('app--night');
     }
-    
-    const gradient = `linear-gradient(180deg, ${colors.join(', ')})`;
-    appBg.style.background = gradient;
+
+    // Base background — darkened version of palette midpoint
+    appBg.style.background = colors[4];
+
+    // Drive blob colors from weather palette
+    const blobs = appBg.querySelectorAll('.blob');
+    if (blobs[0]) blobs[0].style.background = colors[0];
+    if (blobs[1]) blobs[1].style.background = colors[2];
+    if (blobs[2]) blobs[2].style.background = colors[4];
 }

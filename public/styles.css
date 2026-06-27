@@ -10,34 +10,111 @@ body {
     display: flex;
     justify-content: center;
     align-items: flex-start;
-    padding: 40px 20px 60px;
+    padding: 48px 20px 72px;
     overflow-x: hidden;
     color: #fff;
 }
 
-/* Animated background layer */
+/* ── Animated blob background ── */
 .app-bg {
     position: fixed;
     inset: 0;
-    background: linear-gradient(160deg, #F8B195 0%, #F67280 25%, #C06C84 55%, #6C5B7B 80%, #355C7D 100%);
-    transition: background 1.2s ease;
+    background: #1a1a2e;
     z-index: -1;
+    overflow: hidden;
 }
 
+.blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(90px);
+    opacity: 0.75;
+    transition: background 1.4s ease, width 1.4s ease, height 1.4s ease;
+}
+
+.blob-1 {
+    width: 55vw; height: 55vw;
+    top: -15%; left: -10%;
+    animation: blob-drift 14s ease-in-out infinite;
+}
+.blob-2 {
+    width: 45vw; height: 45vw;
+    top: 35%; right: -10%;
+    animation: blob-drift 18s ease-in-out infinite reverse;
+    animation-delay: -5s;
+}
+.blob-3 {
+    width: 40vw; height: 40vw;
+    bottom: -10%; left: 20%;
+    animation: blob-drift 16s ease-in-out infinite;
+    animation-delay: -9s;
+}
+
+/* Noise grain overlay for realism */
 .app-bg::after {
     content: '';
     position: absolute;
     inset: 0;
-    background: radial-gradient(ellipse at 20% 10%, rgba(255,255,255,0.12) 0%, transparent 60%),
-                radial-gradient(ellipse at 80% 90%, rgba(0,0,0,0.15) 0%, transparent 60%);
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+    opacity: 0.03;
+    pointer-events: none;
 }
 
+/* ── Layout ── */
 .container {
     width: 100%;
     max-width: 520px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 14px;
+}
+
+/* ── Liquid glass mixin via class ── */
+.liquid-glass {
+    position: relative;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(50px) saturate(200%) brightness(1.06);
+    -webkit-backdrop-filter: blur(50px) saturate(200%) brightness(1.06);
+    border-radius: 28px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    isolation: isolate;
+}
+
+/* Specular highlight — the "wet glass" refraction layer */
+.liquid-glass::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+        135deg,
+        rgba(255,255,255,0.28) 0%,
+        rgba(255,255,255,0.07) 35%,
+        transparent 65%,
+        rgba(255,255,255,0.05) 100%
+    );
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Iridescent gradient border */
+.liquid-glass::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+        135deg,
+        rgba(255,255,255,0.55) 0%,
+        rgba(255,255,255,0.08) 45%,
+        rgba(255,255,255,0.3) 100%
+    );
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    z-index: 2;
 }
 
 /* ── Search ── */
@@ -51,25 +128,39 @@ body {
     flex: 1;
     display: flex;
     align-items: center;
-    background: rgba(255,255,255,0.18);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255,255,255,0.3);
+    background: rgba(255,255,255,0.14);
+    backdrop-filter: blur(50px) saturate(200%);
+    -webkit-backdrop-filter: blur(50px) saturate(200%);
+    border: 1px solid rgba(255,255,255,0.22);
     border-radius: 100px;
     padding: 0 6px 0 16px;
+    height: 48px;
     gap: 8px;
-    transition: background 0.2s, border-color 0.2s;
+    transition: background 0.25s, border-color 0.25s, box-shadow 0.25s;
+    position: relative;
+    overflow: hidden;
+}
+
+.search-pill::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 50%;
+    border-radius: 100px 100px 0 0;
+    background: linear-gradient(to bottom, rgba(255,255,255,0.2), transparent);
+    pointer-events: none;
 }
 
 .search-pill:focus-within {
-    background: rgba(255,255,255,0.26);
-    border-color: rgba(255,255,255,0.55);
+    background: rgba(255,255,255,0.2);
+    border-color: rgba(255,255,255,0.5);
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.08), 0 8px 32px rgba(0,0,0,0.15);
 }
 
 .search-icon {
     width: 16px;
     height: 16px;
-    color: rgba(255,255,255,0.7);
+    color: rgba(255,255,255,0.65);
     flex-shrink: 0;
 }
 
@@ -82,62 +173,85 @@ body {
     font-size: 15px;
     font-weight: 500;
     color: #fff;
-    padding: 13px 0;
+    padding: 0;
+    height: 100%;
 }
 
-#cityInput::placeholder {
-    color: rgba(255,255,255,0.55);
-}
+#cityInput::placeholder { color: rgba(255,255,255,0.45); }
 
 #searchBtn {
-    background: rgba(255,255,255,0.25);
+    background: rgba(255,255,255,0.22);
     border: none;
     border-radius: 100px;
-    padding: 8px 18px;
+    padding: 9px 20px;
     font-family: inherit;
     font-size: 13px;
     font-weight: 600;
     color: #fff;
     cursor: pointer;
-    transition: background 0.2s, transform 0.15s;
+    transition: background 0.2s, transform 0.2s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s;
 }
 
 #searchBtn:hover {
-    background: rgba(255,255,255,0.35);
-    transform: scale(1.04);
+    background: rgba(255,255,255,0.32);
+    transform: scale(1.06);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
 }
 
-#searchBtn:active { transform: scale(0.97); }
+#searchBtn:active {
+    transform: scale(0.94);
+    transition-duration: 0.1s;
+}
 
 .unit-pill {
-    background: rgba(255,255,255,0.18);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255,255,255,0.3);
+    background: rgba(255,255,255,0.14);
+    backdrop-filter: blur(50px) saturate(200%);
+    -webkit-backdrop-filter: blur(50px) saturate(200%);
+    border: 1px solid rgba(255,255,255,0.22);
     border-radius: 100px;
-    padding: 13px 18px;
+    padding: 0 20px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-family: inherit;
     font-size: 14px;
     font-weight: 600;
     color: #fff;
     cursor: pointer;
-    transition: background 0.2s, transform 0.15s;
+    transition: background 0.2s, transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
     white-space: nowrap;
+    position: relative;
+    overflow: hidden;
+    perspective: 300px;
+}
+
+.unit-pill::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 50%;
+    border-radius: 100px 100px 0 0;
+    background: linear-gradient(to bottom, rgba(255,255,255,0.2), transparent);
+    pointer-events: none;
 }
 
 .unit-pill:hover {
-    background: rgba(255,255,255,0.28);
-    transform: scale(1.04);
+    background: rgba(255,255,255,0.22);
+    transform: scale(1.06);
 }
 
-.unit-pill:active { transform: scale(0.97); }
+.unit-pill:active {
+    transform: scale(0.94);
+    transition-duration: 0.1s;
+}
 
 /* ── Error ── */
 .error-banner {
-    background: rgba(220, 53, 69, 0.75);
-    backdrop-filter: blur(12px);
+    background: rgba(220, 53, 69, 0.5);
+    backdrop-filter: blur(30px);
     border: 1px solid rgba(255,255,255,0.2);
-    border-radius: 14px;
+    border-radius: 18px;
     padding: 14px 20px;
     font-size: 14px;
     font-weight: 500;
@@ -148,11 +262,7 @@ body {
 
 /* ── Glass card ── */
 .glass-card {
-    background: rgba(255,255,255,0.14);
-    backdrop-filter: blur(28px);
-    -webkit-backdrop-filter: blur(28px);
-    border: 1px solid rgba(255,255,255,0.25);
-    border-radius: 28px;
+    border-radius: 36px;
     padding: 28px;
 }
 
@@ -179,61 +289,62 @@ body {
 .city-name {
     font-size: 22px;
     font-weight: 700;
-    letter-spacing: -0.3px;
+    letter-spacing: -0.4px;
     line-height: 1.2;
 }
 
 .region-name {
     font-size: 13px;
     font-weight: 400;
-    color: rgba(255,255,255,0.65);
+    color: rgba(255,255,255,0.6);
 }
 
 .last-updated {
     font-size: 11px;
-    color: rgba(255,255,255,0.45);
+    color: rgba(255,255,255,0.4);
     margin-top: 2px;
 }
 
 .weather-icon {
-    width: 72px;
-    height: 72px;
+    width: 76px;
+    height: 76px;
     flex-shrink: 0;
 }
 
 .weather-icon svg {
     width: 100%;
     height: 100%;
-    filter: drop-shadow(0 4px 12px rgba(0,0,0,0.25));
+    filter: drop-shadow(0 6px 16px rgba(0,0,0,0.22));
 }
 
 .temp-row {
     display: flex;
     align-items: flex-start;
     line-height: 1;
-    margin: 8px 0 4px;
+    margin: 10px 0 4px;
 }
 
 .temp-value {
-    font-size: 86px;
-    font-weight: 300;
-    letter-spacing: -4px;
+    font-size: 92px;
+    font-weight: 200;
+    letter-spacing: -5px;
     line-height: 1;
 }
 
 .temp-unit {
-    font-size: 28px;
-    font-weight: 400;
-    margin-top: 14px;
-    margin-left: 4px;
-    color: rgba(255,255,255,0.75);
+    font-size: 30px;
+    font-weight: 300;
+    margin-top: 16px;
+    margin-left: 6px;
+    color: rgba(255,255,255,0.7);
 }
 
 .condition-text {
     font-size: 17px;
     font-weight: 400;
-    color: rgba(255,255,255,0.8);
-    margin-bottom: 20px;
+    color: rgba(255,255,255,0.75);
+    margin-bottom: 22px;
+    letter-spacing: 0.1px;
 }
 
 .details-grid {
@@ -244,25 +355,42 @@ body {
 }
 
 .detail-chip {
-    background: rgba(255,255,255,0.1);
-    border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 16px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.13);
+    border-radius: 20px;
     padding: 14px 16px;
     display: flex;
     flex-direction: column;
     gap: 5px;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.2s, transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+.detail-chip::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 40%;
+    background: linear-gradient(to bottom, rgba(255,255,255,0.12), transparent);
+    border-radius: 20px 20px 0 0;
+    pointer-events: none;
+}
+
+.detail-chip:hover {
+    background: rgba(255,255,255,0.13);
 }
 
 .detail-label {
     font-size: 11px;
     font-weight: 500;
-    color: rgba(255,255,255,0.55);
+    color: rgba(255,255,255,0.5);
     text-transform: uppercase;
-    letter-spacing: 0.6px;
+    letter-spacing: 0.7px;
 }
 
 .detail-value {
-    font-size: 18px;
+    font-size: 19px;
     font-weight: 600;
     color: #fff;
 }
@@ -273,7 +401,7 @@ body {
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 1px;
-    color: rgba(255,255,255,0.55);
+    color: rgba(255,255,255,0.5);
     padding: 0 4px;
     margin-bottom: 2px;
 }
@@ -281,7 +409,6 @@ body {
 .forecast-scroll {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    padding-bottom: 4px;
     margin: 0 -4px;
     padding: 0 4px 4px;
 }
@@ -296,17 +423,34 @@ body {
 }
 
 .forecast-day {
-    background: rgba(255,255,255,0.14);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255,255,255,0.2);
-    border-radius: 20px;
-    padding: 16px 10px;
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 26px;
+    padding: 18px 10px;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 8px;
     text-align: center;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1), background 0.2s;
+}
+
+.forecast-day::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 45%;
+    background: linear-gradient(to bottom, rgba(255,255,255,0.16), transparent);
+    border-radius: 26px 26px 0 0;
+    pointer-events: none;
+}
+
+.forecast-day:hover {
+    background: rgba(255,255,255,0.16);
 }
 
 .forecast-dow {
@@ -314,12 +458,12 @@ body {
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: rgba(255,255,255,0.6);
+    color: rgba(255,255,255,0.55);
 }
 
 .forecast-icon {
-    width: 36px;
-    height: 36px;
+    width: 38px;
+    height: 38px;
 }
 
 .forecast-icon svg {
@@ -328,7 +472,7 @@ body {
 }
 
 .forecast-hi {
-    font-size: 16px;
+    font-size: 17px;
     font-weight: 700;
     color: #fff;
 }
@@ -336,17 +480,63 @@ body {
 .forecast-lo {
     font-size: 13px;
     font-weight: 400;
-    color: rgba(255,255,255,0.5);
+    color: rgba(255,255,255,0.45);
 }
 
 /* ── Animations ── */
+@keyframes blob-drift {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33%       { transform: translate(30px, -40px) scale(1.08); }
+    66%       { transform: translate(-20px, 20px) scale(0.94); }
+}
+
 @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(16px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; transform: translateY(20px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .update-pop {
-    animation: fadeUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: fadeUp 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* ── Unit toggle flip ── */
+@keyframes unit-flip-out {
+    from { transform: rotateX(0deg);   opacity: 1; }
+    to   { transform: rotateX(90deg);  opacity: 0; }
+}
+@keyframes unit-flip-in {
+    from { transform: rotateX(-90deg); opacity: 0; }
+    to   { transform: rotateX(0deg);   opacity: 1; }
+}
+.unit-pill.flip-out { animation: unit-flip-out 0.24s ease-in  forwards; }
+.unit-pill.flip-in  { animation: unit-flip-in  0.28s ease-out forwards; }
+
+/* ── Mouse-following glass reflection on tiles ── */
+.forecast-day,
+.detail-chip {
+    will-change: transform;
+}
+
+.forecast-day::after,
+.detail-chip::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(
+        circle at var(--mx, 50%) var(--my, 50%),
+        rgba(255,255,255,0.28) 0%,
+        rgba(255,255,255,0.08) 45%,
+        transparent 70%
+    );
+    opacity: 0;
+    transition: opacity 0.35s ease;
+    pointer-events: none;
+    z-index: 3;
+}
+.forecast-day:hover::after,
+.detail-chip:hover::after {
+    opacity: 1;
 }
 
 /* Weather icon animations */
@@ -356,7 +546,7 @@ body {
 
 @keyframes wx-twinkle {
     0%, 100% { opacity: 1; transform: scale(1); }
-    50%       { opacity: 0.2; transform: scale(0.6); }
+    50%       { opacity: 0.2; transform: scale(0.5); }
 }
 
 @keyframes wx-float {
@@ -377,8 +567,8 @@ body {
 }
 
 @keyframes wx-flash {
-    0%, 90%, 100% { opacity: 1; }
-    95%            { opacity: 0.15; }
+    0%, 88%, 100% { opacity: 1; }
+    93%            { opacity: 0.1; }
 }
 
 @keyframes wx-drift {
@@ -386,22 +576,9 @@ body {
     50%       { transform: translateX(5px); }
 }
 
-/* ── Night mode ── */
-body.app--night .app-bg {
-    background: linear-gradient(160deg, #2B2557 0%, #1E1F3A 40%, #131424 100%);
-}
-
 /* ── Responsive ── */
 @media (max-width: 480px) {
-    body { padding: 24px 16px 48px; }
-
-    .temp-value { font-size: 72px; }
-
-    .forecast-row {
-        grid-template-columns: repeat(5, minmax(64px, 1fr));
-        overflow-x: auto;
-        padding-bottom: 4px;
-    }
-
+    body { padding: 28px 16px 56px; }
+    .temp-value { font-size: 76px; }
     .forecast-day { padding: 14px 8px; }
 }
