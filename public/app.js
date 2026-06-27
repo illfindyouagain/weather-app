@@ -4,6 +4,7 @@ const fahrenheitLocales = ['en-US', 'en-LR', 'my'];
 const userLocale = navigator.language || 'en-US';
 let isCelsius = !fahrenheitLocales.some(l => userLocale.startsWith(l));
 let weatherData = null;
+let suggestController = null;
 const unitLabel = () => isCelsius ? '°C' : '°F';
 
 
@@ -60,7 +61,13 @@ toggleUnitBtn.addEventListener('click', toggleUnit);
 // Initialize with geolocation
 window.addEventListener('load', () => {
     initBlobs();
+    renderSavedLocations();
+    setupPullToRefresh();
     detectLocation();
+});
+
+document.getElementById('alertDismiss').addEventListener('click', () => {
+    document.getElementById('alertBanner').classList.add('hidden');
 });
 
 async function handleSearch() {
@@ -83,10 +90,13 @@ async function fetchWeather(city) {
         });
 
         weatherData = data;
+        saveLocation(data.location.name);
 
         updateBackground(data);
         displayCurrentWeather(data);
+        displayHourly(data);
         displayForecast(data);
+        displayAlerts(data);
         attachTileEffects();
 
     } catch (error) {
@@ -105,7 +115,7 @@ function displayCurrentWeather(data) {
     
     document.getElementById('cityName').textContent = data.location.name;
     document.getElementById('regionName').textContent = [data.location.region, data.location.country].filter(Boolean).join(', ');
-    document.getElementById('temperature').textContent = Math.round(temp);
+    animateTemp(Math.round(temp));
     document.getElementById('tempUnit').textContent = unitLabel();
     document.getElementById('condition').textContent = data.current.condition.text;
     document.getElementById('humidity').textContent = data.current.humidity + '%';
@@ -167,6 +177,7 @@ function toggleUnit() {
     isCelsius = !isCelsius;
     if (weatherData) {
         displayCurrentWeather(weatherData);
+        displayHourly(weatherData);
         displayForecast(weatherData);
     }
 }
@@ -179,11 +190,15 @@ function debounce(fn, ms) {
 async function handleSuggestions() {
     const q = cityInput.value.trim();
     if (q.length < 2) { hideSuggestions(); return; }
+    if (suggestController) suggestController.abort();
+    suggestController = new AbortController();
     try {
-        const results = await fetch(`${BASE_URL}/search/${encodeURIComponent(q)}`).then(r => r.json());
+        const results = await fetch(`${BASE_URL}/search/${encodeURIComponent(q)}`, { signal: suggestController.signal }).then(r => r.json());
         if (!Array.isArray(results) || results.length === 0) { hideSuggestions(); return; }
         renderSuggestions(results.slice(0, 6));
-    } catch { hideSuggestions(); }
+    } catch (e) {
+        if (e.name !== 'AbortError') hideSuggestions();
+    }
 }
 
 function renderSuggestions(results) {
@@ -441,6 +456,130 @@ function getWeatherIconSVG(conditionText, isNight) {
               <circle cx="36" cy="36" r="13" fill="#FFD93D"/>
             </svg>`;
     }
+}
+
+// ── Saved locations ──
+function getSavedLocations() {
+    try { return JSON.parse(localStorage.getItem('savedLocations') || '[]'); }
+    catch { return []; }
+}
+
+function saveLocation(name) {
+    let saved = getSavedLocations().filter(s => s.toLowerCase() !== name.toLowerCase());
+    saved.unshift(name);
+    localStorage.setItem('savedLocations', JSON.stringify(saved.slice(0, 5)));
+    renderSavedLocations();
+}
+
+function renderSavedLocations() {
+    const saved = getSavedLocations();
+    const container = document.getElementById('savedLocations');
+    if (!saved.length) { container.classList.add('hidden'); return; }
+    container.innerHTML = '';
+    saved.forEach(name => {
+        const chip = document.createElement('button');
+        chip.className = 'saved-chip';
+        chip.textContent = name;
+        chip.addEventListener('click', () => { cityInput.value = name; hideSuggestions(); fetchWeather(name); });
+        container.appendChild(chip);
+    });
+    container.classList.remove('hidden');
+}
+
+// ── Weather alerts ──
+function displayAlerts(data) {
+    const banner = document.getElementById('alertBanner');
+    const alerts = data.alerts?.alert;
+    if (!alerts || alerts.length === 0) { banner.classList.add('hidden'); return; }
+    document.getElementById('alertText').textContent = alerts[0].headline;
+    banner.classList.remove('hidden');
+}
+
+// ── Hourly forecast ──
+function displayHourly(data) {
+    const hourlyDiv = document.getElementById('hourly');
+    const hourlyItemsDiv = document.getElementById('hourlyItems');
+    hourlyItemsDiv.innerHTML = '';
+
+    const [, locTime] = data.location.localtime.split(' ');
+    const localHour = parseInt(locTime.split(':')[0]);
+
+    const todayHours = data.forecast.forecastday[0].hour;
+    const tomorrowHours = data.forecast.forecastday[1]?.hour || [];
+    const allHours = [...todayHours, ...tomorrowHours];
+
+    const startIdx = todayHours.findIndex(h => {
+        const [, t] = h.time.split(' ');
+        return parseInt(t) === localHour;
+    });
+    const next12 = allHours.slice(startIdx >= 0 ? startIdx : 0, (startIdx >= 0 ? startIdx : 0) + 12);
+
+    next12.forEach((hour, i) => {
+        const item = document.createElement('div');
+        item.className = 'hourly-item' + (i === 0 ? ' now' : '');
+        const [, t] = hour.time.split(' ');
+        const hh = parseInt(t.split(':')[0]);
+        const ampm = hh >= 12 ? 'PM' : 'AM';
+        const h12 = hh % 12 || 12;
+        const temp = isCelsius ? Math.round(hour.temp_c) : Math.round(hour.temp_f);
+        item.innerHTML = `
+            <div class="hourly-time">${i === 0 ? 'Now' : h12 + ' ' + ampm}</div>
+            <div class="hourly-icon">${getWeatherIconSVG(hour.condition.text, hour.is_day === 0)}</div>
+            <div class="hourly-temp">${temp}°</div>
+        `;
+        hourlyItemsDiv.appendChild(item);
+    });
+
+    hourlyDiv.classList.remove('hidden', 'update-pop');
+    void hourlyDiv.offsetWidth;
+    hourlyDiv.classList.add('update-pop');
+}
+
+// ── Temperature counter animation ──
+function animateTemp(target) {
+    const el = document.getElementById('temperature');
+    const from = parseInt(el.textContent) || target;
+    if (from === target || el.textContent === '—') { el.textContent = target; return; }
+    const duration = 450;
+    const start = performance.now();
+    (function tick(now) {
+        const p = Math.min((now - start) / duration, 1);
+        const eased = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.round(from + (target - from) * eased);
+        if (p < 1) requestAnimationFrame(tick);
+    })(start);
+}
+
+// ── Pull-to-refresh ──
+function setupPullToRefresh() {
+    const indicator = document.getElementById('pullIndicator');
+    let startY = 0;
+    let active = false;
+    const THRESHOLD = 70;
+
+    document.addEventListener('touchstart', (e) => {
+        if (window.scrollY === 0) { startY = e.touches[0].clientY; active = true; }
+    }, { passive: true });
+
+    document.addEventListener('touchmove', (e) => {
+        if (!active) return;
+        const delta = e.touches[0].clientY - startY;
+        if (delta > 10) {
+            const progress = Math.min(delta / THRESHOLD, 1);
+            indicator.style.opacity = progress;
+            indicator.style.transform = `translateX(-50%) translateY(${Math.min(delta * 0.5, 50) - 60}px)`;
+            indicator.textContent = delta >= THRESHOLD ? '↑ Release to refresh' : '↓ Pull to refresh';
+        }
+    }, { passive: true });
+
+    document.addEventListener('touchend', (e) => {
+        if (!active) return;
+        const delta = e.changedTouches[0].clientY - startY;
+        active = false;
+        indicator.style.opacity = 0;
+        indicator.style.transform = 'translateX(-50%) translateY(-60px)';
+        if (delta >= THRESHOLD && weatherData) fetchWeather(weatherData.location.name);
+    }, { passive: true });
 }
 
 function updateBackground(data) {

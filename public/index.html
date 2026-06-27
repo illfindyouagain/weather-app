@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <div id="pullIndicator" class="pull-indicator">↓ Release to refresh</div>
     <div class="app-bg" id="appBg"></div>
 
     <div class="container">
@@ -27,7 +28,16 @@
             </div>
         </div>
 
+        <!-- Saved locations -->
+        <div id="savedLocations" class="saved-locations hidden"></div>
+
         <div id="error" class="error-banner hidden"></div>
+
+        <!-- Weather alert -->
+        <div id="alertBanner" class="alert-banner hidden">
+            <span id="alertText" class="alert-text"></span>
+            <button id="alertDismiss" class="alert-dismiss">✕</button>
+        </div>
 
         <!-- Current weather -->
         <div id="currentWeather" class="glass-card liquid-glass current-card hidden">
@@ -65,7 +75,13 @@
             </div>
         </div>
 
-        <!-- Forecast -->
+        <!-- Hourly forecast -->
+        <div id="hourly" class="hidden">
+            <div class="section-label">Hourly</div>
+            <div class="hourly-scroll"><div id="hourlyItems" class="hourly-row"></div></div>
+        </div>
+
+        <!-- 3-Day Forecast -->
         <div id="forecast" class="hidden">
             <div class="section-label">3-Day Forecast</div>
             <div class="forecast-scroll"><div id="forecastDays" class="forecast-row"></div></div>
