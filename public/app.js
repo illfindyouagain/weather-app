@@ -1,7 +1,8 @@
-// API key is now securely stored on the backend
 const BASE_URL = '/api/weather';
 
-let isCelsius = true;
+const fahrenheitLocales = ['en-US', 'en-LR', 'my'];
+const userLocale = navigator.language || 'en-US';
+let isCelsius = !fahrenheitLocales.some(l => userLocale.startsWith(l));
 let currentData = null;
 let forecastData = null;
 
@@ -31,6 +32,7 @@ const toggleUnitBtn = document.getElementById('toggleUnit');
 const errorDiv = document.getElementById('error');
 const currentWeatherDiv = document.getElementById('currentWeather');
 const forecastDiv = document.getElementById('forecast');
+const appBg = document.getElementById('appBg');
 
 // Event Listeners
 searchBtn.addEventListener('click', handleSearch);
@@ -54,34 +56,28 @@ async function handleSearch() {
 }
 
 async function fetchWeather(city) {
+    setLoading(true);
     try {
         hideError();
-        
-        // Fetch current weather and forecast in parallel from our backend API
-        const [current, forecast] = await Promise.all([
-            fetch(`${BASE_URL}/current/${encodeURIComponent(city)}`).then(res => {
-                if (!res.ok) throw new Error('City not found');
-                return res.json();
-            }),
-            fetch(`${BASE_URL}/forecast/${encodeURIComponent(city)}?days=5`).then(res => {
-                if (!res.ok) throw new Error('Failed to fetch forecast');
-                return res.json();
-            })
-        ]);
 
-        currentData = current;
-        forecastData = forecast;
-        
-        // Update background based on weather condition
-        updateBackground(current);
-        
-        displayCurrentWeather(currentData);
-        displayForecast(forecastData);
-        
+        const data = await fetch(`${BASE_URL}/forecast/${encodeURIComponent(city)}?days=3`).then(res => {
+            if (!res.ok) throw new Error('City not found');
+            return res.json();
+        });
+
+        currentData = data;
+        forecastData = data;
+
+        updateBackground(data);
+        displayCurrentWeather(data);
+        displayForecast(data);
+
     } catch (error) {
         showError(error.message || 'Failed to fetch weather data');
         currentWeatherDiv.classList.add('hidden');
         forecastDiv.classList.add('hidden');
+    } finally {
+        setLoading(false);
     }
 }
 
@@ -91,16 +87,27 @@ function displayCurrentWeather(data) {
     const windUnit = isCelsius ? 'km/h' : 'mph';
     
     document.getElementById('cityName').textContent = data.location.name;
+    document.getElementById('regionName').textContent = [data.location.region, data.location.country].filter(Boolean).join(', ');
     document.getElementById('temperature').textContent = Math.round(temp);
     document.getElementById('tempUnit').textContent = isCelsius ? '°C' : '°F';
     document.getElementById('condition').textContent = data.current.condition.text;
     document.getElementById('humidity').textContent = data.current.humidity + '%';
     document.getElementById('wind').textContent = windSpeed + ' ' + windUnit;
-    
-    // Display last updated time
-    const lastUpdated = new Date(data.current.last_updated);
-    const timeString = lastUpdated.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-    document.getElementById('lastUpdated').textContent = `Updated at ${timeString}`;
+
+    const feelsLike = isCelsius ? data.current.feelslike_c : data.current.feelslike_f;
+    document.getElementById('feelsLike').textContent = Math.round(feelsLike) + (isCelsius ? '°C' : '°F');
+    document.getElementById('uvIndex').textContent = data.current.uv;
+
+    const iconEl = document.getElementById('weatherIcon');
+    iconEl.src = 'https:' + data.current.condition.icon.replace('64x64', '128x128');
+    iconEl.alt = data.current.condition.text;
+
+    // last_updated is already local time for the queried city — display as-is
+    const [, timePart] = data.current.last_updated.split(' ');
+    const [hh, mm] = timePart.split(':').map(Number);
+    const ampm = hh >= 12 ? 'PM' : 'AM';
+    const h12 = hh % 12 || 12;
+    document.getElementById('lastUpdated').textContent = `Updated ${h12}:${String(mm).padStart(2,'0')} ${ampm}`;
     
     // Add pop animation
     currentWeatherDiv.classList.remove('update-pop');
@@ -118,19 +125,15 @@ function displayForecast(data) {
         const dayDiv = document.createElement('div');
         dayDiv.className = 'forecast-day';
         
-        const date = new Date(day.date);
-        const dateStr = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-        
+        const date = new Date(day.date + 'T12:00:00');
         const minTemp = isCelsius ? day.day.mintemp_c : day.day.mintemp_f;
         const maxTemp = isCelsius ? day.day.maxtemp_c : day.day.maxtemp_f;
-        
+        const dow = date.toLocaleDateString('en-US', { weekday: 'short' });
         dayDiv.innerHTML = `
-            <div class="forecast-date">${dateStr}</div>
-            <div class="forecast-condition">
-                <img src="https:${day.day.condition.icon}" class="forecast-icon" alt="Weather icon">
-                ${day.day.condition.text}
-            </div>
-            <div class="forecast-temp">${Math.round(minTemp)}° / ${Math.round(maxTemp)}°</div>
+            <div class="forecast-dow">${dow}</div>
+            <img src="https:${day.day.condition.icon}" class="forecast-icon" alt="${day.day.condition.text}">
+            <div class="forecast-hi">${Math.round(maxTemp)}°</div>
+            <div class="forecast-lo">${Math.round(minTemp)}°</div>
         `;
         
         forecastDaysDiv.appendChild(dayDiv);
@@ -154,6 +157,11 @@ function toggleUnit() {
     }
 }
 
+function setLoading(on) {
+    searchBtn.disabled = on;
+    searchBtn.textContent = on ? '…' : 'Go';
+}
+
 function showError(message) {
     errorDiv.textContent = message;
     errorDiv.classList.remove('hidden');
@@ -175,9 +183,8 @@ async function detectLocation() {
             const { latitude, longitude } = position.coords;
             await fetchWeather(`${latitude},${longitude}`);
         },
-        (error) => {
-            console.error('Geolocation error:', error);
-            fetchWeather('London');
+        () => {
+            showError('Allow location access or search for a city above.');
         }
     );
 }
@@ -211,5 +218,5 @@ function updateBackground(data) {
     }
     
     const gradient = `linear-gradient(180deg, ${colors.join(', ')})`;
-    document.body.style.background = gradient;
+    appBg.style.background = gradient;
 }
