@@ -42,17 +42,24 @@ const errorDiv = document.getElementById('error');
 const currentWeatherDiv = document.getElementById('currentWeather');
 const forecastDiv = document.getElementById('forecast');
 const appBg = document.getElementById('appBg');
+const suggestionsDiv = document.getElementById('suggestions');
 
 // Event Listeners
 searchBtn.addEventListener('click', handleSearch);
 cityInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') handleSearch();
+    if (e.key === 'Enter') { hideSuggestions(); handleSearch(); }
+});
+cityInput.addEventListener('input', debounce(handleSuggestions, 280));
+cityInput.addEventListener('keydown', navigateSuggestions);
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.search-row')) hideSuggestions();
 });
 toggleUnitBtn.addEventListener('click', toggleUnit);
 
 // Initialize with geolocation
 window.addEventListener('load', () => {
     initBlobs();
+    toggleUnitBtn.querySelector('.unit-label').textContent = isCelsius ? '°C' : '°F';
     detectLocation();
 });
 
@@ -159,19 +166,88 @@ function displayForecast(data) {
 
 function toggleUnit() {
     isCelsius = !isCelsius;
+    const label = toggleUnitBtn.querySelector('.unit-label');
 
-    toggleUnitBtn.classList.remove('flip-in');
-    toggleUnitBtn.classList.add('flip-out');
+    label.classList.remove('slide-in');
+    label.classList.add('slide-out');
 
     setTimeout(() => {
-        toggleUnitBtn.textContent = isCelsius ? '°F' : '°C';
-        toggleUnitBtn.classList.remove('flip-out');
-        toggleUnitBtn.classList.add('flip-in');
+        label.textContent = isCelsius ? '°F' : '°C';
+        label.classList.remove('slide-out');
+        label.classList.add('slide-in');
         if (currentData && forecastData) {
             displayCurrentWeather(currentData);
             displayForecast(forecastData);
         }
-    }, 140);
+    }, 220);
+}
+
+function debounce(fn, ms) {
+    let t;
+    return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+}
+
+async function handleSuggestions() {
+    const q = cityInput.value.trim();
+    if (q.length < 2) { hideSuggestions(); return; }
+    try {
+        const results = await fetch(`${BASE_URL}/search/${encodeURIComponent(q)}`).then(r => r.json());
+        if (!Array.isArray(results) || results.length === 0) { hideSuggestions(); return; }
+        renderSuggestions(results.slice(0, 6));
+    } catch { hideSuggestions(); }
+}
+
+function renderSuggestions(results) {
+    suggestionsDiv.innerHTML = '';
+    results.forEach((r, i) => {
+        const item = document.createElement('div');
+        item.className = 'suggestion-item';
+        item.dataset.index = i;
+        const cityEl = document.createElement('span');
+        cityEl.className = 'suggestion-city';
+        cityEl.textContent = r.name;
+        const regionEl = document.createElement('span');
+        regionEl.className = 'suggestion-region';
+        regionEl.textContent = [r.region, r.country].filter(Boolean).join(', ');
+        item.appendChild(cityEl);
+        item.appendChild(regionEl);
+        item.addEventListener('mousemove', onTileMove);
+        item.addEventListener('mouseleave', onTileLeave);
+        item.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            cityInput.value = r.name;
+            hideSuggestions();
+            fetchWeather(r.name);
+        });
+        suggestionsDiv.appendChild(item);
+    });
+    suggestionsDiv.classList.remove('hidden');
+}
+
+function hideSuggestions() {
+    suggestionsDiv.classList.add('hidden');
+    suggestionsDiv.innerHTML = '';
+}
+
+function navigateSuggestions(e) {
+    const items = suggestionsDiv.querySelectorAll('.suggestion-item');
+    if (!items.length) return;
+    const active = suggestionsDiv.querySelector('.suggestion-item.active');
+    let idx = active ? parseInt(active.dataset.index) : -1;
+
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        idx = Math.min(idx + 1, items.length - 1);
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        idx = Math.max(idx - 1, 0);
+    } else if (e.key === 'Escape') {
+        hideSuggestions(); return;
+    } else { return; }
+
+    items.forEach(el => el.classList.remove('active'));
+    items[idx].classList.add('active');
+    cityInput.value = items[idx].querySelector('.suggestion-city').textContent;
 }
 
 function attachTileEffects() {

@@ -124,8 +124,13 @@ body {
     align-items: center;
 }
 
-.search-pill {
+.search-pill-wrapper {
     flex: 1;
+    position: relative;
+}
+
+.search-pill {
+    width: 100%;
     display: flex;
     align-items: center;
     background: rgba(255,255,255,0.14);
@@ -244,6 +249,69 @@ body {
 .unit-pill:active {
     transform: scale(0.94);
     transition-duration: 0.1s;
+}
+
+/* ── Suggestions dropdown ── */
+.suggestions {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    background: rgba(30, 30, 50, 0.72);
+    backdrop-filter: blur(50px) saturate(180%);
+    -webkit-backdrop-filter: blur(50px) saturate(180%);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 20px;
+    overflow: hidden;
+    z-index: 100;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.35);
+    animation: fadeUp 0.2s cubic-bezier(0.22,1,0.36,1) both;
+}
+
+.suggestion-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 13px 18px;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    transition: background 0.15s;
+    position: relative;
+    overflow: hidden;
+}
+
+.suggestion-item:last-child { border-bottom: none; }
+
+.suggestion-item:hover,
+.suggestion-item.active {
+    background: rgba(255,255,255,0.1);
+}
+
+/* shimmer on suggestion hover */
+.suggestion-item::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+        circle at var(--mx, 50%) var(--my, 50%),
+        rgba(255,255,255,0.15) 0%,
+        transparent 70%
+    );
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+}
+.suggestion-item:hover::after { opacity: 1; }
+
+.suggestion-city {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.suggestion-region {
+    font-size: 12px;
+    color: rgba(255,255,255,0.45);
 }
 
 /* ── Error ── */
@@ -499,17 +567,21 @@ body {
     animation: fadeUp 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
-/* ── Unit toggle flip ── */
-@keyframes unit-flip-out {
-    from { transform: rotateX(0deg);   opacity: 1; }
-    to   { transform: rotateX(90deg);  opacity: 0; }
+/* ── Unit toggle slide ── */
+.unit-label {
+    display: inline-block;
 }
-@keyframes unit-flip-in {
-    from { transform: rotateX(-90deg); opacity: 0; }
-    to   { transform: rotateX(0deg);   opacity: 1; }
+
+@keyframes unit-slide-out {
+    from { transform: translateY(0);     opacity: 1; }
+    to   { transform: translateY(-130%); opacity: 0; }
 }
-.unit-pill.flip-out { animation: unit-flip-out 0.24s ease-in  forwards; }
-.unit-pill.flip-in  { animation: unit-flip-in  0.28s ease-out forwards; }
+@keyframes unit-slide-in {
+    from { transform: translateY(130%);  opacity: 0; }
+    to   { transform: translateY(0);     opacity: 1; }
+}
+.unit-label.slide-out { animation: unit-slide-out 0.22s cubic-bezier(0.4, 0, 1, 1)    forwards; }
+.unit-label.slide-in  { animation: unit-slide-in  0.32s cubic-bezier(0, 0, 0.2, 1)    forwards; }
 
 /* ── Mouse-following glass reflection on tiles ── */
 .forecast-day,

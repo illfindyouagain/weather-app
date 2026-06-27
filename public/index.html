@@ -15,14 +15,17 @@
     <div class="container">
         <!-- Search -->
         <div class="search-row">
-            <div class="search-pill">
-                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-                </svg>
-                <input type="text" id="cityInput" placeholder="Search city…" value="London" autocomplete="off">
-                <button id="searchBtn">Go</button>
+            <div class="search-pill-wrapper">
+                <div class="search-pill">
+                    <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                    </svg>
+                    <input type="text" id="cityInput" placeholder="Search city…" value="London" autocomplete="off">
+                    <button id="searchBtn">Go</button>
+                </div>
+                <div id="suggestions" class="suggestions hidden"></div>
             </div>
-            <button id="toggleUnit" class="unit-pill">°F</button>
+            <button id="toggleUnit" class="unit-pill"><span class="unit-label">°F</span></button>
         </div>
 
         <div id="error" class="error-banner hidden"></div>
