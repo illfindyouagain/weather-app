@@ -3,8 +3,9 @@ const BASE_URL = '/api/weather';
 const fahrenheitLocales = ['en-US', 'en-LR', 'my'];
 const userLocale = navigator.language || 'en-US';
 let isCelsius = !fahrenheitLocales.some(l => userLocale.startsWith(l));
-let currentData = null;
-let forecastData = null;
+let weatherData = null;
+
+const unitLabel = () => isCelsius ? '°C' : '°F';
 
 // Weather condition color palettes
 const weatherGradients = {
@@ -59,7 +60,7 @@ toggleUnitBtn.addEventListener('click', toggleUnit);
 // Initialize with geolocation
 window.addEventListener('load', () => {
     initBlobs();
-    toggleUnitBtn.querySelector('.unit-label').textContent = isCelsius ? '°C' : '°F';
+    toggleUnitBtn.querySelector('.unit-label').textContent = unitLabel();
     detectLocation();
 });
 
@@ -82,8 +83,7 @@ async function fetchWeather(city) {
             return res.json();
         });
 
-        currentData = data;
-        forecastData = data;
+        weatherData = data;
 
         updateBackground(data);
         displayCurrentWeather(data);
@@ -107,13 +107,13 @@ function displayCurrentWeather(data) {
     document.getElementById('cityName').textContent = data.location.name;
     document.getElementById('regionName').textContent = [data.location.region, data.location.country].filter(Boolean).join(', ');
     document.getElementById('temperature').textContent = Math.round(temp);
-    document.getElementById('tempUnit').textContent = isCelsius ? '°C' : '°F';
+    document.getElementById('tempUnit').textContent = unitLabel();
     document.getElementById('condition').textContent = data.current.condition.text;
     document.getElementById('humidity').textContent = data.current.humidity + '%';
     document.getElementById('wind').textContent = windSpeed + ' ' + windUnit;
 
     const feelsLike = isCelsius ? data.current.feelslike_c : data.current.feelslike_f;
-    document.getElementById('feelsLike').textContent = Math.round(feelsLike) + (isCelsius ? '°C' : '°F');
+    document.getElementById('feelsLike').textContent = Math.round(feelsLike) + unitLabel();
     document.getElementById('uvIndex').textContent = data.current.uv;
 
     document.getElementById('weatherIcon').innerHTML =
@@ -175,9 +175,9 @@ function toggleUnit() {
         label.textContent = isCelsius ? '°F' : '°C';
         label.classList.remove('slide-out');
         label.classList.add('slide-in');
-        if (currentData && forecastData) {
-            displayCurrentWeather(currentData);
-            displayForecast(forecastData);
+        if (weatherData) {
+            displayCurrentWeather(weatherData);
+            displayForecast(weatherData);
         }
     }, 220);
 }
