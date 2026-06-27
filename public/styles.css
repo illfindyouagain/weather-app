@@ -126,6 +126,7 @@ body {
 
 .search-pill-wrapper {
     flex: 1;
+    min-width: 0;
     position: relative;
 }
 
@@ -208,48 +209,6 @@ body {
     transition-duration: 0.1s;
 }
 
-.unit-pill {
-    background: rgba(255,255,255,0.14);
-    backdrop-filter: blur(50px) saturate(200%);
-    -webkit-backdrop-filter: blur(50px) saturate(200%);
-    border: 1px solid rgba(255,255,255,0.22);
-    border-radius: 100px;
-    padding: 0 20px;
-    height: 48px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: inherit;
-    font-size: 14px;
-    font-weight: 600;
-    color: #fff;
-    cursor: pointer;
-    transition: background 0.2s, transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
-    white-space: nowrap;
-    position: relative;
-    overflow: hidden;
-    perspective: 300px;
-}
-
-.unit-pill::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 50%;
-    border-radius: 100px 100px 0 0;
-    background: linear-gradient(to bottom, rgba(255,255,255,0.2), transparent);
-    pointer-events: none;
-}
-
-.unit-pill:hover {
-    background: rgba(255,255,255,0.22);
-    transform: scale(1.06);
-}
-
-.unit-pill:active {
-    transform: scale(0.94);
-    transition-duration: 0.1s;
-}
 
 /* ── Suggestions dropdown ── */
 .suggestions {
@@ -390,6 +349,16 @@ body {
     align-items: flex-start;
     line-height: 1;
     margin: 10px 0 4px;
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    width: fit-content;
+}
+
+.temp-row:active .temp-value,
+.temp-row:active .temp-unit {
+    opacity: 0.65;
+    transition: opacity 0.1s;
 }
 
 .temp-value {
@@ -405,6 +374,8 @@ body {
     margin-top: 16px;
     margin-left: 6px;
     color: rgba(255,255,255,0.7);
+    border-bottom: 1.5px dotted rgba(255,255,255,0.35);
+    padding-bottom: 2px;
 }
 
 .condition-text {
@@ -567,21 +538,6 @@ body {
     animation: fadeUp 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
-/* ── Unit toggle slide ── */
-.unit-label {
-    display: inline-block;
-}
-
-@keyframes unit-slide-out {
-    from { transform: translateY(0);     opacity: 1; }
-    to   { transform: translateY(-130%); opacity: 0; }
-}
-@keyframes unit-slide-in {
-    from { transform: translateY(130%);  opacity: 0; }
-    to   { transform: translateY(0);     opacity: 1; }
-}
-.unit-label.slide-out { animation: unit-slide-out 0.22s cubic-bezier(0.4, 0, 1, 1)    forwards; }
-.unit-label.slide-in  { animation: unit-slide-in  0.32s cubic-bezier(0, 0, 0.2, 1)    forwards; }
 
 /* ── Mouse-following glass reflection on tiles ── */
 .forecast-day,
@@ -678,7 +634,7 @@ body {
         text-overflow: ellipsis;
     }
 
-    .detail-value { font-size: 17px; }
+.detail-value { font-size: 17px; }
 
     .forecast-day { padding: 14px 8px; }
 }

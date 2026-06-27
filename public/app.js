@@ -4,8 +4,8 @@ const fahrenheitLocales = ['en-US', 'en-LR', 'my'];
 const userLocale = navigator.language || 'en-US';
 let isCelsius = !fahrenheitLocales.some(l => userLocale.startsWith(l));
 let weatherData = null;
-
 const unitLabel = () => isCelsius ? '°C' : '°F';
+
 
 // Weather condition color palettes
 const weatherGradients = {
@@ -60,7 +60,6 @@ toggleUnitBtn.addEventListener('click', toggleUnit);
 // Initialize with geolocation
 window.addEventListener('load', () => {
     initBlobs();
-    toggleUnitBtn.querySelector('.unit-label').textContent = unitLabel();
     detectLocation();
 });
 
@@ -166,20 +165,10 @@ function displayForecast(data) {
 
 function toggleUnit() {
     isCelsius = !isCelsius;
-    const label = toggleUnitBtn.querySelector('.unit-label');
-
-    label.classList.remove('slide-in');
-    label.classList.add('slide-out');
-
-    setTimeout(() => {
-        label.textContent = isCelsius ? '°F' : '°C';
-        label.classList.remove('slide-out');
-        label.classList.add('slide-in');
-        if (weatherData) {
-            displayCurrentWeather(weatherData);
-            displayForecast(weatherData);
-        }
-    }, 220);
+    if (weatherData) {
+        displayCurrentWeather(weatherData);
+        displayForecast(weatherData);
+    }
 }
 
 function debounce(fn, ms) {
