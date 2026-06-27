@@ -650,7 +650,35 @@ body {
 
 /* ── Responsive ── */
 @media (max-width: 480px) {
-    body { padding: 28px 16px 56px; }
+    body {
+        padding:
+            max(env(safe-area-inset-top), 28px)
+            max(env(safe-area-inset-right), 16px)
+            max(env(safe-area-inset-bottom), 56px)
+            max(env(safe-area-inset-left), 16px);
+    }
+
+    /* Prevent iOS Safari auto-zoom on input focus */
+    #cityInput { font-size: 16px; }
+
+    .glass-card { padding: 22px; }
+
     .temp-value { font-size: 76px; }
+
+    /* Constrain location block so it never crowds the weather icon */
+    .location-block {
+        max-width: calc(100% - 88px);
+        min-width: 0;
+    }
+
+    /* Truncate long region/country strings to one line */
+    .region-name {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .detail-value { font-size: 17px; }
+
     .forecast-day { padding: 14px 8px; }
 }
